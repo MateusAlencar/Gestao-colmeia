@@ -30,7 +30,7 @@ export default function ViewDenunciaPage({ params }: { params: Promise<{ id: str
                     status: d.status || "Pendente",
                     date: new Date(d.created_at).toLocaleDateString('pt-BR'),
                     protocolo: d.protocolo,
-                    // status_note: d.status_note || "" // Column missing in new table
+                    status_note: d.status_note || "",
                     usuario_identificado: d.usuario_identificado,
                     nome: d.nome,
                     email: d.email,
@@ -57,26 +57,57 @@ export default function ViewDenunciaPage({ params }: { params: Promise<{ id: str
     }, [resolvedParams.id, router]);
 
     const handleUpdateStatus = async (status: Denuncia["status"]) => {
-        const { error } = await supabase
+        const { data, error } = await supabase
             .from("denuncias")
-            .update({ status: status })
-            .eq("id", resolvedParams.id);
+            .update({ status: status, updated_at: new Date().toISOString() })
+            .eq("id", resolvedParams.id)
+            .select("id,status");
 
         if (error) {
             console.error("Error updating status:", error);
             alert("Erro ao atualizar status");
+            return;
         } else {
+            // If RLS blocks the update, PostgREST may return success but with 0 updated rows.
+            if (Array.isArray(data) && data.length === 0) {
+                alert("Sem permissão para atualizar esta denúncia (RLS).");
+                return;
+            }
             if (denuncia) {
                 setDenuncia({ ...denuncia, status: status });
             }
         }
     };
 
-    /* const handleUpdateNote = async (note: string) => {
-             // Feature disabled until column exists
-             console.log("Update note disabled", note);
-             alert("Funcionalidade temporariamente indisponível.");
-    }; */
+    const handleUpdateNote = async (note: string) => {
+        const { data, error } = await supabase
+            .from("denuncias")
+            .update({ status_note: note, updated_at: new Date().toISOString() })
+            .eq("id", resolvedParams.id)
+            .select("id,status_note");
+
+        if (error) {
+            console.error("Error updating status note:", error);
+            alert(`Erro ao salvar nota: ${error.message ?? "erro desconhecido"}`);
+            throw error;
+        }
+
+        // If RLS blocks the update, PostgREST may return success but with 0 updated rows.
+        if (Array.isArray(data) && data.length === 0) {
+            const msg =
+                "O Supabase aceitou a requisição, mas não atualizou nenhuma linha. " +
+                "Isso costuma ser RLS/policy bloqueando UPDATE para este usuário.";
+            console.warn(msg, { denunciaId: resolvedParams.id });
+            alert(msg);
+            throw new Error("No rows updated (likely RLS).");
+        }
+
+        if (denuncia) {
+            // If Supabase returned the updated row, prefer it; otherwise fallback to local note.
+            const updatedNote = (data as any)?.[0]?.status_note ?? note;
+            setDenuncia({ ...denuncia, status_note: updatedNote });
+        }
+    };
 
     if (!denuncia) {
         return <div>Carregando...</div>;
@@ -85,7 +116,11 @@ export default function ViewDenunciaPage({ params }: { params: Promise<{ id: str
     return (
         <div className="mx-auto max-w-3xl">
             <h1 className="mb-6 text-2xl font-bold">Detalhes da Denúncia</h1>
-            <DenunciaDetail initialData={denuncia} onUpdateStatus={handleUpdateStatus} />
+            <DenunciaDetail
+                initialData={denuncia}
+                onUpdateStatus={handleUpdateStatus}
+                onUpdateNote={handleUpdateNote}
+            />
         </div>
     );
 }

@@ -90,7 +90,15 @@ export async function signOut(): Promise<{ error: string | null }> {
  */
 export async function getCurrentUser(): Promise<AuthUser | null> {
     try {
-        const { data: { user } } = await supabase.auth.getUser();
+        const { data: { user }, error } = await supabase.auth.getUser();
+
+        if (error) {
+            // If the refresh token is invalid, ensure local session is cleared
+            if (error.message.includes('Refresh Token') || error.message.includes('refresh_token_not_found')) {
+                await supabase.auth.signOut();
+            }
+            return null;
+        }
 
         if (user) {
             return {
@@ -120,4 +128,40 @@ export function onAuthStateChange(callback: (user: AuthUser | null) => void) {
             callback(null);
         }
     });
+}
+
+/**
+ * Send password reset email
+ */
+export async function resetPasswordForEmail(email: string): Promise<{ error: string | null }> {
+    try {
+        const { error } = await supabase.auth.resetPasswordForEmail(email, {
+            redirectTo: `${window.location.origin}/auth/callback?next=/account/update-password`,
+        });
+
+        if (error) {
+            return { error: error.message };
+        }
+        return { error: null };
+    } catch (err) {
+        return { error: 'An unexpected error occurred' };
+    }
+}
+
+/**
+ * Update user password
+ */
+export async function updatePassword(password: string): Promise<{ error: string | null }> {
+    try {
+        const { error } = await supabase.auth.updateUser({
+            password: password
+        });
+
+        if (error) {
+            return { error: error.message };
+        }
+        return { error: null };
+    } catch (err) {
+        return { error: 'An unexpected error occurred' };
+    }
 }

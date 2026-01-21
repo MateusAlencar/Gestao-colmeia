@@ -7,13 +7,15 @@ import { Denuncia } from "@/lib/data";
 interface DenunciaDetailProps {
     initialData: Denuncia;
     onUpdateStatus: (status: Denuncia["status"]) => void;
-    onUpdateNote?: (note: string) => void;
+    onUpdateNote?: (note: string) => void | Promise<void>;
 }
 
 export function DenunciaDetail({ initialData, onUpdateStatus, onUpdateNote }: DenunciaDetailProps) {
     const router = useRouter();
     const [status, setStatus] = useState<Denuncia["status"]>(initialData.status);
     const [note, setNote] = useState(initialData.status_note || "");
+    const [savingNote, setSavingNote] = useState(false);
+    const [noteSaveMessage, setNoteSaveMessage] = useState<string | null>(null);
 
     const handleStatusChange = (newStatus: Denuncia["status"]) => {
         setStatus(newStatus);
@@ -154,11 +156,26 @@ export function DenunciaDetail({ initialData, onUpdateStatus, onUpdateNote }: De
                         onChange={(e) => setNote(e.target.value)}
                     />
                     <button
-                        onClick={() => onUpdateNote(note)}
-                        className="mt-2 rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors"
+                        onClick={async () => {
+                            try {
+                                setSavingNote(true);
+                                setNoteSaveMessage(null);
+                                await onUpdateNote(note);
+                                setNoteSaveMessage("Nota salva.");
+                            } catch {
+                                setNoteSaveMessage("Falha ao salvar. Veja o alerta/console para detalhes.");
+                            } finally {
+                                setSavingNote(false);
+                            }
+                        }}
+                        disabled={savingNote}
+                        className="mt-2 rounded-lg bg-zinc-800 px-4 py-2 text-sm font-medium text-white hover:bg-zinc-700 transition-colors disabled:opacity-60"
                     >
-                        Salvar Nota
+                        {savingNote ? "Salvando..." : "Salvar Nota"}
                     </button>
+                    {noteSaveMessage && (
+                        <p className="mt-2 text-sm text-zinc-400">{noteSaveMessage}</p>
+                    )}
                 </div>
             )}
 
