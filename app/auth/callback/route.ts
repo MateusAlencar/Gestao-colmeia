@@ -1,28 +1,29 @@
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs';
-import { cookies } from 'next/headers';
+import { createClient } from '@/lib/supabase/server';
 import { NextResponse } from 'next/server';
 
 export async function GET(request: Request) {
-    const requestUrl = new URL(request.url);
-    const code = requestUrl.searchParams.get('code');
-    const token_hash = requestUrl.searchParams.get('token_hash');
-    const type = requestUrl.searchParams.get('type');
-    const next = requestUrl.searchParams.get('next') || '/';
+    const { searchParams, origin } = new URL(request.url);
+    const code = searchParams.get('code');
+    const next = searchParams.get('next') ?? '/';
 
-    const cookieStore = cookies();
-    const supabase = createRouteHandlerClient({ cookies: () => cookieStore });
-
-    try {
-        if (code) {
-            await supabase.auth.exchangeCodeForSession(code);
-        } else if (token_hash && type === 'recovery') {
-            // Some Supabase recovery links return token_hash + type instead of a code
-            await supabase.auth.verifyOtp({ token_hash, type: 'recovery' });
+    if (code) {
+        const supabase = await createClient();
+        const { error } = await supabase.auth.exchangeCodeForSession(code);
+        if (!error) {
+            const forwardedHost = request.headers.get('x-forwarded-host'); // original origin before load balancer
+            const isLocalEnv = process.env.NODE_ENV === 'development';
+            if (isLocalEnv) {
+                // we can be sure that there is no load balancer in between, so no need to watch for X-Forwarded-Host
+                return NextResponse.redirect(`${origin}${next}`);
+            } else if (forwardedHost) {
+                return NextResponse.redirect(`https://${forwardedHost}${next}`);
+            } else {
+                return NextResponse.redirect(`${origin}${next}`);
+            }
         }
-    } catch (e) {
-        // Best-effort: still redirect to next so UI can show a friendly message if needed
-        console.error('Auth callback error:', e);
     }
 
-    return NextResponse.redirect(`${requestUrl.origin}${next}`);
+    // return the user to an error page with instructions
+    return NextResponse.redirect(`${origin}/auth/auth-code-error`);
 }
+
