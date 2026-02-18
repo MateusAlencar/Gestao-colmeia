@@ -445,17 +445,41 @@ export function CasesForm({ initialData, onSubmit }: CasesFormProps) {
             </div>
 
             {/* Publishing Status */}
-            <div className="flex items-center">
-                <input
-                    id="isPublished"
-                    type="checkbox"
-                    checked={isPublished}
-                    onChange={(e) => setIsPublished(e.target.checked)}
-                    className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 text-primary focus:ring-primary"
-                />
-                <label htmlFor="isPublished" className="ml-2 block text-sm text-zinc-400">
-                    Publicar imediatamente
-                </label>
+            <div className="rounded-lg border border-zinc-800 bg-zinc-900 p-4">
+                <div className="flex items-center justify-between">
+                    <div>
+                        <h2 className="text-sm font-semibold text-white">Visibilidade</h2>
+                        <p className="mt-1 text-xs text-zinc-500">
+                            {isPublished
+                                ? "Este case está visível no site público."
+                                : "Este case está salvo como rascunho e não aparece no site público."}
+                        </p>
+                    </div>
+                    <button
+                        type="button"
+                        role="switch"
+                        aria-checked={isPublished}
+                        onClick={() => setIsPublished(!isPublished)}
+                        className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-zinc-900 ${
+                            isPublished ? "bg-green-600" : "bg-zinc-700"
+                        }`}
+                    >
+                        <span
+                            className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow ring-0 transition-transform duration-200 ease-in-out ${
+                                isPublished ? "translate-x-5" : "translate-x-0"
+                            }`}
+                        />
+                    </button>
+                </div>
+                <div className="mt-2">
+                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                        isPublished
+                            ? "bg-green-900/40 text-green-400"
+                            : "bg-yellow-900/40 text-yellow-400"
+                    }`}>
+                        {isPublished ? "Publicado" : "Rascunho"}
+                    </span>
+                </div>
             </div>
 
             {/* Form Actions */}

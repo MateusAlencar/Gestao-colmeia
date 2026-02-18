@@ -10,6 +10,7 @@ interface CaseDisplay {
     title: string;
     client: string;
     date: string;
+    is_published: boolean;
 }
 
 export default function CasesPage() {
@@ -28,7 +29,8 @@ export default function CasesPage() {
                 id: c.id,
                 title: c.title,
                 client: c.client_name || "",
-                date: new Date(c.project_date || c.created_at).toLocaleDateString('pt-BR')
+                date: new Date(c.project_date || c.created_at).toLocaleDateString('pt-BR'),
+                is_published: !!c.is_published,
             }));
             setCases(mappedData);
         }
@@ -60,7 +62,14 @@ export default function CasesPage() {
             </div>
 
             <div className="overflow-hidden rounded-xl border border-zinc-900 bg-zinc-950">
-                <table className="min-w-full divide-y divide-zinc-900">
+                <table className="w-full table-fixed divide-y divide-zinc-900">
+                    <colgroup>
+                        <col className="w-[35%]" />
+                        <col className="w-[25%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[15%]" />
+                        <col className="w-[10%]" />
+                    </colgroup>
                     <thead className="bg-zinc-950">
                         <tr>
                             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
@@ -72,6 +81,9 @@ export default function CasesPage() {
                             <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
                                 Data
                             </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-zinc-400">
+                                Status
+                            </th>
                             <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-zinc-400">
                                 Ações
                             </th>
@@ -80,15 +92,23 @@ export default function CasesPage() {
                     <tbody className="divide-y divide-zinc-800">
                         {cases.map((item) => (
                             <tr key={item.id}>
-                                <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-white">
-                                    {item.title.split(' ').slice(0, 3).join(' ')}
-                                    {item.title.split(' ').length > 3 ? '...' : ''}
+                                <td className="px-6 py-4 text-sm font-medium text-white">
+                                    <span className="block truncate">{item.title}</span>
                                 </td>
-                                <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-400">
-                                    {item.client}
+                                <td className="px-6 py-4 text-sm text-zinc-400">
+                                    <span className="block truncate">{item.client}</span>
                                 </td>
                                 <td className="whitespace-nowrap px-6 py-4 text-sm text-zinc-400">
                                     {item.date}
+                                </td>
+                                <td className="px-6 py-4 text-sm">
+                                    <span className={`inline-flex rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+                                        item.is_published
+                                            ? "bg-green-900/40 text-green-400"
+                                            : "bg-yellow-900/40 text-yellow-400"
+                                    }`}>
+                                        {item.is_published ? "Publicado" : "Rascunho"}
+                                    </span>
                                 </td>
                                 <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
                                     <Link
