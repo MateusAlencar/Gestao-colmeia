@@ -5,18 +5,16 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { canAccessPath } from "@/lib/rbac";
 
-const PUBLIC_ROUTES = ["/login", "/signup"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/auth/callback", "/auth/auth-code-error"];
 
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const { user, role, loading } = useAuth();
 
-  // While AuthProvider is still resolving the session/role, it already renders its own loader.
-  // This is a safety net to avoid flashing protected content.
   if (loading) return null;
 
-  // Public pages are always accessible.
-  if (PUBLIC_ROUTES.includes(pathname)) return <>{children}</>;
+  const isPublicRoute = PUBLIC_ROUTES.includes(pathname) || pathname.startsWith('/auth/');
+  if (isPublicRoute) return <>{children}</>;
 
   // Not authenticated: AuthProvider will redirect to /login (per requirement).
   // Avoid rendering protected content here.

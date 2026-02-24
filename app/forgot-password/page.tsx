@@ -1,51 +1,54 @@
 "use client";
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Mail } from 'lucide-react';
 import { resetPasswordForEmail } from '@/lib/supabase-auth';
+
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export default function ForgotPasswordPage() {
     const [email, setEmail] = useState('');
     const [error, setError] = useState('');
     const [success, setSuccess] = useState(false);
     const [loading, setLoading] = useState(false);
+    const submittingRef = useRef(false);
 
-    const validateForm = () => {
-        if (!email) {
+    const validateForm = (): boolean => {
+        const trimmed = email.trim();
+        if (!trimmed) {
             setError('Por favor, insira seu email');
             return false;
         }
-
-        if (!email.includes('@')) {
+        if (!EMAIL_REGEX.test(trimmed)) {
             setError('Por favor, insira um email válido');
             return false;
         }
-
         return true;
     };
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
+        if (submittingRef.current) return;
         setError('');
-        setSuccess(false);
 
-        if (!validateForm()) {
-            return;
-        }
+        if (!validateForm()) return;
 
+        submittingRef.current = true;
         setLoading(true);
 
-        const { error: authError } = await resetPasswordForEmail(email);
+        const { error: authError } = await resetPasswordForEmail(email.trim());
 
         if (authError) {
             setError(authError);
             setLoading(false);
+            submittingRef.current = false;
             return;
         }
 
         setSuccess(true);
         setLoading(false);
+        submittingRef.current = false;
     };
 
     return (
@@ -67,13 +70,18 @@ export default function ForgotPasswordPage() {
 
                     {success ? (
                         <div className="rounded-lg bg-green-500/10 border border-green-500/20 p-6 text-center">
-                            <h3 className="text-lg font-semibold text-green-500 mb-2">Email enviado!</h3>
+                            <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-green-500/20">
+                                <Mail size={24} className="text-green-500" />
+                            </div>
+                            <h3 className="text-lg font-semibold text-green-500 mb-2">
+                                Verifique seu email
+                            </h3>
                             <p className="text-zinc-400 mb-6">
-                                Verifique sua caixa de entrada e siga as instruções para redefinir sua senha.
+                                Se este email estiver cadastrado, você receberá um link para redefinir sua senha. Verifique também a pasta de spam.
                             </p>
                             <Link
                                 href="/login"
-                                className="inline-block w-full rounded-lg bg-green-500 px-4 py-3 font-semibold text-white hover:bg-green-600 transition-colors"
+                                className="inline-block w-full rounded-lg bg-primary px-4 py-3 font-semibold text-primary-foreground hover:bg-primary/90 transition-colors text-center"
                             >
                                 Voltar para Login
                             </Link>
@@ -94,10 +102,15 @@ export default function ForgotPasswordPage() {
                                     id="email"
                                     type="email"
                                     value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    onChange={(e) => {
+                                        setEmail(e.target.value);
+                                        if (error) setError('');
+                                    }}
                                     className="w-full rounded-lg border border-zinc-800 bg-zinc-950 px-4 py-3 text-foreground placeholder-zinc-500 focus:border-primary focus:outline-none focus:ring-1 focus:ring-primary transition-colors"
                                     placeholder="seu@email.com"
                                     disabled={loading}
+                                    autoComplete="email"
+                                    autoFocus
                                 />
                             </div>
 
@@ -106,7 +119,7 @@ export default function ForgotPasswordPage() {
                                 disabled={loading}
                                 className="w-full rounded-lg bg-primary px-4 py-3 font-semibold text-primary-foreground hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 focus:ring-offset-zinc-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                             >
-                                {loading ? 'Enviando email...' : 'Enviar email de recuperação'}
+                                {loading ? 'Enviando...' : 'Enviar email de recuperação'}
                             </button>
                         </form>
                     )}

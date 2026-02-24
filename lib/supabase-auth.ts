@@ -10,9 +10,16 @@ export interface AuthResponse {
     error: string | null;
 }
 
-/**
- * Sign up a new user with email and password
- */
+function getBaseUrl(): string {
+    if (typeof window !== 'undefined') {
+        return window.location.origin;
+    }
+    if (process.env.NEXT_PUBLIC_SITE_URL) {
+        return process.env.NEXT_PUBLIC_SITE_URL;
+    }
+    return 'http://localhost:3000';
+}
+
 export async function signUp(email: string, password: string): Promise<AuthResponse> {
     try {
         const { data, error } = await supabase.auth.signUp({
@@ -35,14 +42,11 @@ export async function signUp(email: string, password: string): Promise<AuthRespo
         }
 
         return { user: null, error: 'Failed to create user' };
-    } catch (err) {
-        return { user: null, error: 'An unexpected error occurred' };
+    } catch {
+        return { user: null, error: 'Ocorreu um erro inesperado' };
     }
 }
 
-/**
- * Sign in an existing user with email and password
- */
 export async function signIn(email: string, password: string): Promise<AuthResponse> {
     try {
         const { data, error } = await supabase.auth.signInWithPassword({
@@ -65,14 +69,11 @@ export async function signIn(email: string, password: string): Promise<AuthRespo
         }
 
         return { user: null, error: 'Failed to sign in' };
-    } catch (err) {
-        return { user: null, error: 'An unexpected error occurred' };
+    } catch {
+        return { user: null, error: 'Ocorreu um erro inesperado' };
     }
 }
 
-/**
- * Sign out the current user
- */
 export async function signOut(): Promise<{ error: string | null }> {
     try {
         const { error } = await supabase.auth.signOut();
@@ -80,20 +81,16 @@ export async function signOut(): Promise<{ error: string | null }> {
             return { error: error.message };
         }
         return { error: null };
-    } catch (err) {
-        return { error: 'An unexpected error occurred' };
+    } catch {
+        return { error: 'Ocorreu um erro inesperado' };
     }
 }
 
-/**
- * Get the current authenticated user
- */
 export async function getCurrentUser(): Promise<AuthUser | null> {
     try {
         const { data: { user }, error } = await supabase.auth.getUser();
 
         if (error) {
-            // If the refresh token is invalid, ensure local session is cleared
             if (error.message.includes('Refresh Token') || error.message.includes('refresh_token_not_found')) {
                 await supabase.auth.signOut();
             }
@@ -114,9 +111,6 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     }
 }
 
-/**
- * Listen to auth state changes
- */
 export function onAuthStateChange(callback: (user: AuthUser | null) => void) {
     return supabase.auth.onAuthStateChange((event, session) => {
         if (session?.user) {
@@ -130,38 +124,41 @@ export function onAuthStateChange(callback: (user: AuthUser | null) => void) {
     });
 }
 
-/**
- * Send password reset email
- */
-export async function resetPasswordForEmail(email: string): Promise<{ error: string | null }> {
+export async function resetPasswordForEmail(
+    email: string,
+    redirectPath = '/auth/callback?next=/account/update-password',
+): Promise<{ error: string | null }> {
     try {
+        const baseUrl = getBaseUrl();
+        const redirectTo = `${baseUrl}${redirectPath}`;
+
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo: `${window.location.origin}/auth/callback?next=/account/update-password`,
+            redirectTo,
         });
 
         if (error) {
-            return { error: error.message };
+            return { error: 'Não foi possível enviar o email. Tente novamente.' };
         }
         return { error: null };
-    } catch (err) {
-        return { error: 'An unexpected error occurred' };
+    } catch {
+        return { error: 'Ocorreu um erro inesperado. Tente novamente.' };
     }
 }
 
-/**
- * Update user password
- */
 export async function updatePassword(password: string): Promise<{ error: string | null }> {
     try {
         const { error } = await supabase.auth.updateUser({
-            password: password
+            password,
         });
 
         if (error) {
+            if (error.message.toLowerCase().includes('session') || error.message.toLowerCase().includes('token')) {
+                return { error: 'Seu link de redefinição expirou. Solicite um novo.' };
+            }
             return { error: error.message };
         }
         return { error: null };
-    } catch (err) {
-        return { error: 'An unexpected error occurred' };
+    } catch {
+        return { error: 'Ocorreu um erro inesperado. Tente novamente.' };
     }
 }

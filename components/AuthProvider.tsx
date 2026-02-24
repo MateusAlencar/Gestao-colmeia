@@ -21,7 +21,7 @@ export function useAuth() {
     return useContext(AuthContext);
 }
 
-const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password', '/auth/callback'];
+const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password', '/auth/callback', '/auth/auth-code-error'];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
