@@ -111,15 +111,15 @@ export async function getCurrentUser(): Promise<AuthUser | null> {
     }
 }
 
-export function onAuthStateChange(callback: (user: AuthUser | null) => void) {
+export function onAuthStateChange(callback: (user: AuthUser | null, event: string) => void) {
     return supabase.auth.onAuthStateChange((event, session) => {
         if (session?.user) {
             callback({
                 id: session.user.id,
                 email: session.user.email || '',
-            });
+            }, event);
         } else {
-            callback(null);
+            callback(null, event);
         }
     });
 }

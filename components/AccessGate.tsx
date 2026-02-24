@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/components/AuthProvider";
 import { canAccessPath } from "@/lib/rbac";
 
-const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/auth/callback", "/auth/auth-code-error"];
+const PUBLIC_ROUTES = ["/login", "/signup", "/forgot-password", "/auth/callback", "/auth/auth-code-error", "/account/update-password"];
 
 export function AccessGate({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();

@@ -40,8 +40,8 @@ export function canAccessPath(role: string | null | undefined, pathname: string)
   const normalizedRole = normalizeRole(role);
   if (!pathname) return false;
 
-  // Always allow auth pages (UI can still decide to hide sidebar there).
-  if (pathname === "/login" || pathname === "/signup") return true;
+  // Always allow auth and account-recovery pages.
+  if (pathname === "/login" || pathname === "/signup" || pathname === "/account/update-password") return true;
 
   if (!normalizedRole) return false;
   if (normalizedRole === "admin") return true;

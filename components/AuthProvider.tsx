@@ -21,7 +21,7 @@ export function useAuth() {
     return useContext(AuthContext);
 }
 
-const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password', '/auth/callback', '/auth/auth-code-error'];
+const PUBLIC_ROUTES = ['/login', '/signup', '/forgot-password', '/auth/callback', '/auth/auth-code-error', '/account/update-password'];
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
@@ -64,13 +64,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
 
         // Listen to auth changes
-        const { data: { subscription } } = onAuthStateChange(async (authUser) => {
+        const { data: { subscription } } = onAuthStateChange(async (authUser, event) => {
             setUser(authUser);
             if (authUser) {
                 const userRole = await fetchUserRole(authUser.id);
                 setRole(userRole);
             } else {
                 setRole(null);
+            }
+            if (event === 'PASSWORD_RECOVERY') {
+                router.push('/account/update-password');
             }
         });
 
@@ -86,8 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             if (!user && !isPublicRoute) {
                 // User not authenticated and trying to access protected route
                 router.push('/login');
-            } else if (user && isPublicRoute) {
-                // User authenticated but on login/signup page
+            } else if (user && isPublicRoute && pathname !== '/account/update-password') {
                 router.push('/');
             }
         }
